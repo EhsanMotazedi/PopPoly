@@ -20,10 +20,10 @@ from scipy import misc
 genotype_err = 0.0001
 
 def Branch_Founders(H, G, SReadsLST, ploidy_levels, rho, error, qscores=[None, None], G_offspring = None, Impute_Incompatible=True, Impute_Missing=True, redose=False):
-	""" Branch the ordered pair of maternal and paternal haplotypes H = (Hm, Hf) to position s using the genotypes G = (Gm, Gf) at s, 
+        """ Branch the ordered pair of maternal and paternal haplotypes H = (Hm, Hf) to position s using the genotypes G = (Gm, Gf) at s, 
         and assign probability to each phasing extension through the semi-reads of all of the individuals in the family. For this purpose,
         an error rate, i.e. error, or the Q-scores of the reads are used to measure the likelihood of each read conditional on the haplotypes."""
-	G = [_G for _G in G] # convert tuple to list
+        G = [_G for _G in G] # convert tuple to list
         for _id in range(0, 2):
             if G[_id].isMISSING(): # If the genotype is missing, extension will be skipped or the genotype has to be imputed!
                 if not Impute_Missing: # without imputation, missing genotypes will simply be dropped from the final haplotypes
@@ -33,45 +33,45 @@ def Branch_Founders(H, G, SReadsLST, ploidy_levels, rho, error, qscores=[None, N
                 G[_id] = Genotype(G[_id].GetS(), G[_id].GetPos(), *['-' for _homologue in H[_id].GetVS()])
             if all(r.isNULL() for r in SReadsLST[_id]):
                 sys.stderr.write('WARNING: No semi-reads exist for {0:s} at SNP {1:d}, position {2:d}!\n'.format("Mother" if _id==0 else "Father", G[_id].GetS()+1, G[_id].GetPos()))
-	G = tuple(_G for _G in G) # convert list back to tuple
-	ProbH = H[0].GetRL() # H[0].GetRL() is the same as H[1].GetRL() as probability is assigned to a pair not to individuals.
+        G = tuple(_G for _G in G) # convert list back to tuple
+        ProbH = H[0].GetRL() # H[0].GetRL() is the same as H[1].GetRL() as probability is assigned to a pair not to individuals.
         #for _id in range(0,2):
             #garbage = sys.stdout.write('Base Haplotype {2:s}, S= {1:d}, Pos= {3:d}:\n\t{0}\n'.format('\n\t'.join(('\t'.join(_x for _x in H[_id].GetGenotype(_pos))) for _pos in range(H[_id].GetStart(), H[_id].GetStop()+1)), G[_id].GetS(), "Mother" if _id==0 else "Father", G[_id].GetPos()))
-	extend_H_branched = []
-	extend_logprobs_branched = []
-	uniques, priors, logrprobs, counts, Returned_Imputation = GetProbTot_Founders(H, G, G_offspring, SReadsLST, ploidy_levels, error, True, qscores, False, Impute_Incompatible, Impute_Missing, redose) # An imputation is returned if al of the parental extensions are incompatible with the offspring genotypes and Impute_Incompatible=True, if genotypes are missing and Impute_Missing = True, or if redose=True 
-	if not uniques:
+        extend_H_branched = []
+        extend_logprobs_branched = []
+        uniques, priors, logrprobs, counts, Returned_Imputation = GetProbTot_Founders(H, G, G_offspring, SReadsLST, ploidy_levels, error, True, qscores, False, Impute_Incompatible, Impute_Missing, redose) # An imputation is returned if al of the parental extensions are incompatible with the offspring genotypes and Impute_Incompatible=True, if genotypes are missing and Impute_Missing = True, or if redose=True 
+        if not uniques:
             return [[tuple(_H+Haplotypes(_G.GetS(), _G.GetS(), 0, 0, None, None, *['-' for _homologue in _H.GetVS()]) for _H, _G in zip(H, G))], Returned_Imputation] # skip extension if no extension has been possible
         logrprobs_adj = [_x+_y for (_x, _y) in zip(logrprobs, log(priors))] # adjust P[SR(s)|Hp, H, eps] by its prior P[Hp|H, eps] 
-	_norm = max(logrprobs_adj)
-	logrprobs_adj = [_x - _norm for _x in logrprobs_adj] # subtract the max log(prob) from the set of logprobs to prevent numerical underflow 
-	_norm = loge(sum(exp(_x) for _x in logrprobs_adj)) 
+        _norm = max(logrprobs_adj)
+        logrprobs_adj = [_x - _norm for _x in logrprobs_adj] # subtract the max log(prob) from the set of logprobs to prevent numerical underflow 
+        _norm = loge(sum(exp(_x) for _x in logrprobs_adj)) 
         if isinf(_norm):
             logHpprobs = [-loge(len(logrprobs_adj)) for _x in _x in logrprobs_adj]  
         else:
-	    logHpprobs = [_x - _norm for _x in logrprobs_adj] # obtain p[Hp|SR(s), H, eps] by P[SR(s)|Hp, H, eps]
-	myrho = loge(rho) # change rho to log scale 
+            logHpprobs = [_x - _norm for _x in logrprobs_adj] # obtain p[Hp|SR(s), H, eps] by P[SR(s)|Hp, H, eps]
+        myrho = loge(rho) # change rho to log scale 
         Candid_Offspring_Extensions = []
-	for _n, Hcandid in enumerate(uniques): # remove duplicate extensions that occur due to presence of similar homologues in H
-	    #garbage = sys.stdout.write('\tCandidate Extension:\n\t    {0}\n'.format('\t'.join(str(_x) for _x in Hcandid.GetGenotype(Hcandid.GetStop()))))
-	    #garbage = sys.stdout.write("\t    prob={:7.19f}, logprob= {:7.19f}\n".format(2**logHpprobs[_n], logHpprobs[_n]))
-	    if logHpprobs[_n]>=myrho: # cut the extensions with an adjusted reads-probability lower than the threshold
-		extend_H_branched.append(tuple(_Hcandid.GetCopy() for _Hcandid in Hcandid))
-		extend_logprobs_branched.append(logHpprobs[_n])
-		#garbage = sys.stdout.write("\t    Candidate Accepted!\n")
-	    else:
-		#garbage = sys.stdout.write("\t    Candidate Rejected by rho!\n")
-		pass 
-	if not extend_H_branched:
+        for _n, Hcandid in enumerate(uniques): # remove duplicate extensions that occur due to presence of similar homologues in H
+            #garbage = sys.stdout.write('\tCandidate Extension:\n\t    {0}\n'.format('\t'.join(str(_x) for _x in Hcandid.GetGenotype(Hcandid.GetStop()))))
+            #garbage = sys.stdout.write("\t    prob={:7.19f}, logprob= {:7.19f}\n".format(2**logHpprobs[_n], logHpprobs[_n]))
+            if logHpprobs[_n]>=myrho: # cut the extensions with an adjusted reads-probability lower than the threshold
+                extend_H_branched.append(tuple(_Hcandid.GetCopy() for _Hcandid in Hcandid))
+                extend_logprobs_branched.append(logHpprobs[_n])
+                #garbage = sys.stdout.write("\t    Candidate Accepted!\n")
+            else:
+                #garbage = sys.stdout.write("\t    Candidate Rejected by rho!\n")
+                pass 
+        if not extend_H_branched:
             garbage = sys.stderr.write('WARNING: No founder extension survived the threshold at SNP {0:d}, position {1:d}!\n'.format(G[0].GetS()+1, G[0].GetPos()))
             _maxindex = logHpprobs.index(max(logHpprobs))
             extend_H_branched.append(uniques[_maxindex])
             for _n in range(0, len(extend_H_branched[-1])):
                 extend_H_branched[-1][_n].SetRL(logHpprobs[_maxindex])
-	for _H, _prob in zip(extend_H_branched, extend_logprobs_branched):  # Update the stored RL value of H during branching to\ 
+        for _H, _prob in zip(extend_H_branched, extend_logprobs_branched):  # Update the stored RL value of H during branching to\ 
             for _n in range(0, len(_H)):
                 _H[_n].SetRL(ProbH+_prob) # Update the RL of Hp for each founder
-	return [extend_H_branched, Returned_Imputation]
+        return [extend_H_branched, Returned_Imputation]
 
 def Check_Balance_Genome(G_H, sample_name):
     """Checks if a genotype (single marker or haplotype genotype) contains an even number of chromosomes and hence
@@ -110,7 +110,7 @@ def Check_Genotype_Compatibility(H, Glst, Number_of_Tolerable_Errors=0, give_num
     return differences<=Number_of_Tolerable_Errors
 
 def GetProbReads_Founders(ReadsLST, H, eps = 0.0005, pplog = False, QualsLST = [None, None, None], getcounts=False, min_read_length = 2):
-	""" Probability of a set of reads gathered from all of the family members, i.e. P[Rm,Rf,Rc1,...,Rcn|Hm, Hf, eps] = 
+        """ Probability of a set of reads gathered from all of the family members, i.e. P[Rm,Rf,Rc1,...,Rcn|Hm, Hf, eps] = 
         Mult(Mult(P[r|Hm, Hf, eps] for r in R) for R in (Rm,Rf,Rc1,...,Rcn)), assuming independence & using GetlogProb(r, Vset, eps) (Berger et al. 2014, p. 4). 
         P[r|Hm, Hf, eps] = P[r|Hm, eps] if r in Rm,  P[r|Hm, Hf, eps] = P[r|Hf, eps] if r in Rf & P[r|Hm, Hf, eps] = 1/2*P[r|Hm, eps]+1/2*P[r|Hf, eps] if r 
         in Rci, i=1,...n. If getcounts if True, also calculate the number of reads assigned to each homologue."""
@@ -159,15 +159,15 @@ def GetProbReads_Founders(ReadsLST, H, eps = 0.0005, pplog = False, QualsLST = [
                 else:
                     probLST.append(exp(sum(probs)))
             except IndexError as e: # Error that occurs at the event that the Reads set is empty
-		if "index 0 is out of bounds for axis 0 with size 0" in e.args[0]:
+                if "index 0 is out of bounds for axis 0 with size 0" in e.args[0]:
                     if getcounts:
                         countLST.append([0 for _h in range(0, len(H[0].GetVS())+len(H[1].GetVS()))])
                     if pplog:
                         probLST.append(0)
                     else:
                         probLST.append(1)
-		else:
-			raise
+                else:
+                        raise
         if getcounts:
             if pplog:
                 return sum(probLST), reduce(lambda x, y: [_x+_y for _x, _y in zip(x,y)], countLST)
@@ -180,7 +180,7 @@ def GetProbReads_Founders(ReadsLST, H, eps = 0.0005, pplog = False, QualsLST = [
                 return reduce(lambda x, y: x*y, probLST)
 
 def GetProbTot_Founders(H, G, G_offspring, ReadsLST, ploidy_levels, error_rate, plog = False, QscoresLST = None, usecounts=False, Impute_Incompatible=True, Impute_Missing=True, redose=False):
-	"""Determine the set of distinct extensions for a pair of founder base haplotypes H=(Hm, Hf) to position s using their genotypes at s G=(Gm, Gf), 
+        """Determine the set of distinct extensions for a pair of founder base haplotypes H=(Hm, Hf) to position s using their genotypes at s G=(Gm, Gf), 
         calculate their prior weights and report the read-probabilities conditional on each extension. In case usecounts is True, also report the number 
         of observed reads compatible with each homologue, so that the upstream functions may set a threshold on the minimum number of reads compatible with 
         each homologue."""
@@ -213,7 +213,7 @@ def GetProbTot_Founders(H, G, G_offspring, ReadsLST, ploidy_levels, error_rate, 
             probs = []   # the probability of Semi Reads at s conditional on (Hp, H, eps)
             weights = [] # the prior pobability of Hp conditional on (H, eps)  
             Uniques = [] # distinct Hp's
-            Counts = []  # Number of reads compatible with each homologue	
+            Counts = []  # Number of reads compatible with each homologue        
             for P1 in perm[0]: # evaluate all of the possible extensions for the base haplotypes of each parent
                 for P2 in perm[1]:
                     Hp = (H[0] + P1, H[1] + P2)
@@ -233,49 +233,49 @@ def GetProbTot_Founders(H, G, G_offspring, ReadsLST, ploidy_levels, error_rate, 
                                 Candid_Offspring_Extensions_Hp.append(Haplotypes(Hp[0].GetStop()-1, Hp[0].GetStop(), 0, 0, None, None, *(_megagamete+_microgamete)))
                         _prior = 0 # the prior weight of a candidate founder extension
                         #_prior = 1 # the prior weight of a candidate founder extension
-			total_offspring_phasings_possible = len(Candid_Offspring_Extensions_Hp)
+                        total_offspring_phasings_possible = len(Candid_Offspring_Extensions_Hp)
                         for _id in range(2, len(Imputation)):
-			    #_min_number_of_errors = 2 # Mininum number of genotype incompatibilities for each offspring at s-1 and s, assumign a candidate parental extension Hp (min = 0 and max = 2, naturally!)
-			    _number_of_compatible_phasings = 0
+                            #_min_number_of_errors = 2 # Mininum number of genotype incompatibilities for each offspring at s-1 and s, assumign a candidate parental extension Hp (min = 0 and max = 2, naturally!)
+                            _number_of_compatible_phasings = 0
                             for _Hc in Candid_Offspring_Extensions_Hp:
                                 #_error_Hc = Check_Genotype_Compatibility(_Hc, Imputation[_id], 0, give_number_of_incompatibles=True)
-				#if _error_Hc < _min_number_of_errors:
- 				#	_min_number_of_errors = _error_Hc
+                                #if _error_Hc < _min_number_of_errors:
+                                 #        _min_number_of_errors = _error_Hc
                                 if Check_Genotype_Compatibility(_Hc, Imputation[_id], 0):
-				    _number_of_compatible_phasings +=1
+                                    _number_of_compatible_phasings +=1
                                 else:
                                     pass
-			    _prior+=(_number_of_compatible_phasings*_number_of_compatible_phasings)
-			    #print(_prior)
+                            _prior+=(_number_of_compatible_phasings*_number_of_compatible_phasings)
+                            #print(_prior)
                             #_prior*=misc.comb(2,_min_number_of_errors)*genotype_err**_min_number_of_errors*(1-genotype_err)**(2-_min_number_of_errors)
                         #weights.append(_prior/(1e-60+len(Candid_Offspring_Extensions_Hp)*(len(Imputation)-2))) # P(Hm,Hf|ReadLST)=P(ReadLST|Hm,Hf)P(Hm,Hf)=P(ReadsLST|Hm,Hf)P(Offspring Genotypes|Hm, Hf)
                         #if weights[-1]>1e-10:
                         #    weights[-1]=1
-			weights.append(float(_prior)/(total_offspring_phasings_possible*total_offspring_phasings_possible))
-			for _Hp in Hp:
-			    _npVset = []
+                        weights.append(float(_prior)/(total_offspring_phasings_possible*total_offspring_phasings_possible))
+                        for _Hp in Hp:
+                            _npVset = []
                             for _v in _Hp.GetVS():
                                 _npv = array(_v)
                                 _npVset.append(npdel(_npv, npwhere(_npv=='-')).tolist())
-			    try:
+                            try:
                                 weights[-1]*=(2**GetLogProbH(Haplotypes(1, 2, 1, loge(len(set(itertools.permutations(tuple((_v[-2],_v[-1]) for _v in _npVset))))),None, None, *tuple((_v[-2],_v[-1]) for _v in _npVset))))
-			    except IndexError:
-				pass
-			#weights[-1]*=4**sum(1 for x in Hp[0].GetVS() if str(x[-1])==str(x[-2]) and str(x[-1])=='0')
-			#weights[-1]*=4**sum(1 for x in Hp[1].GetVS() if str(x[-1])==str(x[-2]) and str(x[-1])=='0')
+                            except IndexError:
+                                pass
+                        #weights[-1]*=4**sum(1 for x in Hp[0].GetVS() if str(x[-1])==str(x[-2]) and str(x[-1])=='0')
+                        #weights[-1]*=4**sum(1 for x in Hp[1].GetVS() if str(x[-1])==str(x[-2]) and str(x[-1])=='0')
                         #weights.append(_prior) # P(Hm,Hf|ReadLST)=P(ReadLST|Hm,Hf)P(Hm,Hf)=P(ReadsLST|Hm,Hf)P(Offspring Genotypes|Hm, Hf)
-			#if _prior>1e-10:
-			#	weights.append(1) # uninformative prior
-			#else:
-			#	weights.append(0) # incompatible extension
+                        #if _prior>1e-10:
+                        #        weights.append(1) # uninformative prior
+                        #else:
+                        #        weights.append(0) # incompatible extension
                     else:
                         pass
-	    #all_incompatible_prob = (1+1e-10)*(genotype_err**2)**(len(Imputation)-2)
+            #all_incompatible_prob = (1+1e-10)*(genotype_err**2)**(len(Imputation)-2)
             if all(_x<1e-60 for _x in weights):# if no offspring extension derived from the parental extensions is compatible with the offspring genotypes, estimate the offspring genotype at s anew. This condition is NOT expected to occur with "redose" set to True. Check if all weights are zero taking numerical uncertainty into account.
             #if all(_x<all_incompatible_prob for _x in weights):# if no offspring extension derived from the parental extensions is compatible with the offspring genotypes, estimate the offspring genotype at s anew. This condition is NOT expected to occur with "redose" set to True. Check if all weights are zero taking numerical uncertainty into account.
                 if not Impute_Incompatible:
                     sys.stderr.write("WARNING: Parental genotypes were incompatible with the offspring genotypes! Extension will be skipped at SNP {0:d}, position {1:d}!\n".format(Imputation[0].GetS()+1, Imputation[0].GetPos()))
-		    Uniques, weights = [], []
+                    Uniques, weights = [], []
                     done = True
                 else:
                     attempt+=1
@@ -299,10 +299,10 @@ def GetProbTot_Founders(H, G, G_offspring, ReadsLST, ploidy_levels, error_rate, 
                 done = True
         if not done:
             sys.stderr.write("WARNING: Parental genotypes were still incompatible with the offspring after imputation! Extension will be therefore skipped at SNP {0:d}, position {1:d}!\n".format(Imputation[0].GetS()+1, Imputation[0].GetPos()))
-	    Uniques, weights = [], []
-	_norm = float(sum(weights))
-	weights = [_w/_norm for _w in weights]
-	return Uniques, weights, probs, Counts, Returned_Imputation
+            Uniques, weights = [], []
+        _norm = float(sum(weights))
+        weights = [_w/_norm for _w in weights]
+        return Uniques, weights, probs, Counts, Returned_Imputation
 
 def ImputeGenotype(Position, ReadLST, PloidyLevels, ErrorRate = 0.005, Quals = None, FixedGenos=None):
     """ Impute the genotypes at a specific position for a sample of reads (ReadLST) with ploidy levels given in PloidyLevels, assuming 
@@ -383,9 +383,9 @@ def ImputeGenotype(Position, ReadLST, PloidyLevels, ErrorRate = 0.005, Quals = N
                 _Child_GenotypeLST.append(Haplotypes(Position, Position, 0, 0, None, None, *(_megagamete+_microgamete)))
         num_all_zygotes = len(_Child_GenotypeLST)
         _Child_GenotypeLST = collections.Counter(_Child_GenotypeLST)
-	for _Hc in _Child_GenotypeLST.keys():
+        for _Hc in _Child_GenotypeLST.keys():
             _Hc.SetRL(loge(float(_Child_GenotypeLST[_Hc])/num_all_zygotes))
-	Population_GenotypeLST.append((Haplotypes(Position, Position, loge(_Prior_Parents[_n][0]), 0 , None, None, *_GmGf[0]), Haplotypes(Position, Position, loge(_Prior_Parents[_n][1]), 0 , None, None, *_GmGf[1]))+tuple(_Hc for _Hc in _Child_GenotypeLST.keys()))
+        Population_GenotypeLST.append((Haplotypes(Position, Position, loge(_Prior_Parents[_n][0]), 0 , None, None, *_GmGf[0]), Haplotypes(Position, Position, loge(_Prior_Parents[_n][1]), 0 , None, None, *_GmGf[1]))+tuple(_Hc for _Hc in _Child_GenotypeLST.keys()))
     if len(Population_GenotypeLST) > 1: # Calculate the posterior of the parental genotype pairs only if more than one estimated genotype pair is acceptable
         Posterior_Parents = []
         for _Impute_Num in range(0, len(Population_GenotypeLST)): # Obtain the posterior probability of every population imputation. First get the posterior of each parent
@@ -422,38 +422,38 @@ def ImputeGenotype(Position, ReadLST, PloidyLevels, ErrorRate = 0.005, Quals = N
     return [_H.GetVS() for _H in Imputations[Max_a_posteriori]]
 
 def Prune_Founders(Hlst, kappa, error_rate, alpha = None, subreadsLST=[[], []], qsLST = [(), ()], Het=False):
-	""" Prune a set of founder haplotypes using their log Relative Likelihoods and the pruning rate kappa (Berger et al. 2014 p. 6)."""
-	try:
-		#RLs = [GetProbReads_Founders(subreadsLST, _H, error_rate, True, qsLST) for _H in Hlst] #Calculate RL[H|R(SubReads), error_Rate] directly using formula (3) in Berger et al. 2014 p. 5.
+        """ Prune a set of founder haplotypes using their log Relative Likelihoods and the pruning rate kappa (Berger et al. 2014 p. 6)."""
+        try:
+                #RLs = [GetProbReads_Founders(subreadsLST, _H, error_rate, True, qsLST) for _H in Hlst] #Calculate RL[H|R(SubReads), error_Rate] directly using formula (3) in Berger et al. 2014 p. 5.
                 RLs = [_H[0].GetRL() for _H in Hlst]
-		_norm = max(RLs)
-		RLs = [_x - _norm for _x in RLs]
+                _norm = max(RLs)
+                RLs = [_x - _norm for _x in RLs]
                 _norm = loge(sum(exp(_x) for _x in RLs))
                 if isinf(_norm):
                     RLs = [-loge(len(RLs)) for _x in RLs]
                 else:    
                     RLs = [_x - _norm for _x in RLs]
-		maxprob = max(RLs)
-	except ValueError as e:
-		raise BlockException(''.join(e.args)+'\n'+"Pruning could not be done! "+'\n')
-	pruned = []
-	k = loge(kappa)
-	for _num, _H in enumerate(Hlst):
-		#garbage = sys.stdout.write('****Pruning Candidate Mother {1}, RL={2:7.19f}:\n\t{0}\n'.format('\n\t'.join(('\t'.join(_x for _x in _H[0].GetGenotype(_pos))) for _pos in range(_H[0].GetStart(), _H[0].GetStop()+1)), _num, RLs[_num]))
-		#garbage = sys.stdout.write('    Pruning Candidate Father {1}, RL={2:7.19f}:\n\t{0}\n-------------------\n'.format('\n\t'.join(('\t'.join(_x for _x in _H[1].GetGenotype(_pos))) for _pos in range(_H[1].GetStart(), _H[1].GetStop()+1)), _num, RLs[_num]))
-		if RLs[_num] >= k + maxprob:
-			pruned.append(_H)
-			#garbage = sys.stdout.write("\t    Candidate Accepted!\n")
+                maxprob = max(RLs)
+        except ValueError as e:
+                raise BlockException(''.join(e.args)+'\n'+"Pruning could not be done! "+'\n')
+        pruned = []
+        k = loge(kappa)
+        for _num, _H in enumerate(Hlst):
+                #garbage = sys.stdout.write('****Pruning Candidate Mother {1}, RL={2:7.19f}:\n\t{0}\n'.format('\n\t'.join(('\t'.join(_x for _x in _H[0].GetGenotype(_pos))) for _pos in range(_H[0].GetStart(), _H[0].GetStop()+1)), _num, RLs[_num]))
+                #garbage = sys.stdout.write('    Pruning Candidate Father {1}, RL={2:7.19f}:\n\t{0}\n-------------------\n'.format('\n\t'.join(('\t'.join(_x for _x in _H[1].GetGenotype(_pos))) for _pos in range(_H[1].GetStart(), _H[1].GetStop()+1)), _num, RLs[_num]))
+                if RLs[_num] >= k + maxprob:
+                        pruned.append(_H)
+                        #garbage = sys.stdout.write("\t    Candidate Accepted!\n")
                         for _id in range(0, len(pruned[-1])):
                             pruned[-1][_id].SetRL(RLs[_num])
-		else:
-			#garbage = sys.stdout.write("\t    Candidate Rejected!\n")
-			pass 
+                else:
+                        #garbage = sys.stdout.write("\t    Candidate Rejected!\n")
+                        pass 
         non_empty_reads = [[_r for _r in subreads if not _r.isNULL()] for subreads in subreadsLST]
-	MEC_Scores = [(getMEC(non_empty_reads[0], _H_pruned[0], Het)+getMEC(non_empty_reads[1], _H_pruned[1], Het)) for _H_pruned in pruned] # The MEC score is calculated for each candidate founder haplotype pair using founder reads
-	HAPandMEC = sorted(zip(pruned, MEC_Scores), key = lambda x: (x[1], -1*round(x[0][0].GetRL(), 4)), reverse=False)
-	if (alpha is not None) and len(pruned)>(1-alpha)*len(Hlst):
-		PrunedMEC = list(zip(*HAPandMEC[0:int((1-alpha)*len(Hlst))+2])) # aggressive pruning
-		return PrunedMEC[0], PrunedMEC[1]
-	PrunedMEC = list(zip(*HAPandMEC))
-	return PrunedMEC[0], PrunedMEC[1]
+        MEC_Scores = [(getMEC(non_empty_reads[0], _H_pruned[0], Het)+getMEC(non_empty_reads[1], _H_pruned[1], Het)) for _H_pruned in pruned] # The MEC score is calculated for each candidate founder haplotype pair using founder reads
+        HAPandMEC = sorted(zip(pruned, MEC_Scores), key = lambda x: (x[1], -1*round(x[0][0].GetRL(), 4)), reverse=False)
+        if (alpha is not None) and len(pruned)>(1-alpha)*len(Hlst):
+                PrunedMEC = list(zip(*HAPandMEC[0:int((1-alpha)*len(Hlst))+2])) # aggressive pruning
+                return PrunedMEC[0], PrunedMEC[1]
+        PrunedMEC = list(zip(*HAPandMEC))
+        return PrunedMEC[0], PrunedMEC[1]
